@@ -18,7 +18,7 @@ async function fetchProducts(address) {
   const rawProducts =
     nextData.props.pageProps.plpProps.productListingProps.hits;
 
-  console.log(JSON.stringify(rawProducts, null, 2)); // Debugging line
+  // console.log(JSON.stringify(rawProducts, null, 2)); // Debugging line
 
   // Extract the relevant product data
   const products = rawProducts.map((product) => ({
@@ -36,7 +36,7 @@ async function fetchProducts(address) {
   return products;
 }
 
-function getAddedNewItems(fetchedProducts) {
+function getAddedNewItems(productsPath, fetchedProducts) {
   // Read the existing products from the file
   const existingProducts = JSON.parse(fs.readFileSync(productsPath, "utf-8"));
 
@@ -79,17 +79,13 @@ function getAddedNewItems(fetchedProducts) {
         continue;
       }
 
-      const newProducts = getAddedNewItems(fetchProducts);
+      const newProducts = getAddedNewItems(productsPath, fetchedProducts);
 
       // No new products were added, continue
       if (newProducts.length == 0) {
         console.log(`No products were added to ${url.label}.`);
         continue;
       }
-
-      // TODO: No new products were added, exit
-
-      // TODO: send notification
 
       // TODO: Update the products file
     } catch (error) {
