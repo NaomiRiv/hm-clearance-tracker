@@ -2,6 +2,6 @@ node_modules/
 .env
 .DS_Store
 
-Database/
+tracking_files/
 
 package-lock.json

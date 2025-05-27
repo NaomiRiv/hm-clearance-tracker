@@ -131,7 +131,7 @@ function sendNotifications(newProducts, url) {
       const fetchedProducts = await fetchProducts(baseUrl + url.url);
 
       // If Database folder doesn't exist, create it
-      const databasePath = "./Database";
+      const databasePath = "./tracking_files";
       if (!fs.existsSync(databasePath)) {
         fs.mkdirSync(databasePath);
       }
