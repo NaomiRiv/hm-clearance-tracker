@@ -6,6 +6,7 @@ export const urls = [
     label: "Kids 2-8Y",
     fileName: "kids_2_8y.json",
   },
+  /*
   {
     url: "/kids/last-chance/9-14y.html",
     label: "Kids 9-14Y",
@@ -36,4 +37,5 @@ export const urls = [
     label: "Men",
     fileName: "men.json",
   },
+  */
 ];
