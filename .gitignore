@@ -3,5 +3,6 @@ node_modules/
 .DS_Store
 
 tracking_files/
+logfile.log
 
 package-lock.json
