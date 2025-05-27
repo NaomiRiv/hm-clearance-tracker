@@ -3,6 +3,8 @@ import * as cheerio from "cheerio";
 
 import { baseUrl, urls } from "./urls.js";
 
+const MAX_SEPARATE_NOTIFICATIONS = 6;
+
 async function fetchProducts(address) {
   const response = await fetch(address);
   const html = await response.text();
@@ -50,6 +52,19 @@ function getAddedNewItems(productsPath, fetchedProducts) {
   return newProducts;
 }
 
+function sendTelegramNotification(product) {
+  // TODO : implement
+}
+
+function sendNotifications(newProducts) {
+  if (newProducts.length <= MAX_SEPARATE_NOTIFICATIONS) {
+    for (const product of newProducts) {
+      sendTelegramNotification(product);
+    }
+  } else {
+  }
+}
+
 (async () => {
   for (const url of urls) {
     console.log(`Processing ${url.label}...`);
@@ -86,6 +101,10 @@ function getAddedNewItems(productsPath, fetchedProducts) {
         console.log(`No products were added to ${url.label}.`);
         continue;
       }
+
+      // send notification
+      console.log(`New products found for ${url.label}:`, newProducts);
+      sendNotifications(newProducts);
 
       // TODO: Update the products file
     } catch (error) {
