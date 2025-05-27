@@ -18,11 +18,12 @@ async function fetchProducts(address) {
   const rawProducts =
     nextData.props.pageProps.plpProps.productListingProps.hits;
 
-  // console.log(JSON.stringify(rawProducts, null, 2)); // Debugging line
+  console.log(JSON.stringify(rawProducts, null, 2)); // Debugging line
 
   // Extract the relevant product data
   const products = rawProducts.map((product) => ({
     imageSrc: product.imageProductSrc,
+    articleCode: product.articleCode,
     productUrl: product.pdpUrl,
     title: product.title,
     regularPrice: product.regularPrice,
@@ -35,6 +36,20 @@ async function fetchProducts(address) {
   return products;
 }
 
+function getAddedNewItems(fetchedProducts) {
+  // Read the existing products from the file
+  const existingProducts = JSON.parse(fs.readFileSync(productsPath, "utf-8"));
+
+  // Compare the fetched products with the existing ones
+  const existingProductCodes = new Set(
+    existingProducts.map((product) => product.articleCode)
+  );
+  const newProducts = fetchedProducts.filter(
+    (product) => !existingProductCodes.has(product.articleCode)
+  );
+  return newProducts;
+}
+
 (async () => {
   for (const url of urls) {
     console.log(`Processing ${url.label}...`);
@@ -44,31 +59,38 @@ async function fetchProducts(address) {
       // Fetch products from the website
       const fetchedProducts = await fetchProducts(baseUrl + url.url);
 
-      
+      // If Database folder doesn't exist, create it
+      const databasePath = "./Database";
+      if (!fs.existsSync(databasePath)) {
+        fs.mkdirSync(databasePath);
+      }
+
+      const productsPath = `${databasePath}/${productsFileName}`;
       // If the products file doesn't exist, create it with the fetched data
-      if (!fs.existsSync(productsFileName)) {
+      if (!fs.existsSync(productsPath)) {
         fs.writeFileSync(
-          productsFileName,
+          productsPath,
           JSON.stringify(fetchedProducts, null, 2)
         );
         console.log(
-          `Products file created with fetched products for ${url.label}.`
+          `Products file (${productsPath}) created with fetched products for ${url.label} in the Database folder.`
         );
         // Nothing to compare to, continue
         continue;
       }
 
-      // Read the existing products from the file
-      const existingProducts = JSON.parse(
-        fs.readFileSync(productsFileName, "utf-8")
-      );
+      const newProducts = getAddedNewItems(fetchProducts);
 
-      // TODO: Compare the fetched products with the existing ones
+      // No new products were added, continue
+      if (newProducts.length == 0) {
+        console.log(`No products were added to ${url.label}.`);
+        continue;
+      }
 
       // TODO: No new products were added, exit
 
       // TODO: send notification
-    */
+
       // TODO: Update the products file
     } catch (error) {
       console.error(`Error processing ${url.label}:`, error);
