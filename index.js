@@ -1,9 +1,18 @@
 import fs from "fs";
 import * as cheerio from "cheerio";
+import dotenv from "dotenv";
+import { Telegraf } from "telegraf";
 
 import { baseUrl, urls } from "./urls.js";
 
+dotenv.config();
+
 const MAX_SEPARATE_NOTIFICATIONS = 6;
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const bot = new Telegraf(BOT_TOKEN);
 
 async function fetchProducts(address) {
   const response = await fetch(address);
