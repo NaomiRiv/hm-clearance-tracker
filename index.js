@@ -165,7 +165,8 @@ function sendNotifications(newProducts, url) {
       );
       sendNotifications(newProducts, url);
 
-      // TODO: Update the products file
+      // Update the products file
+      fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
     } catch (error) {
       console.error(`Error processing ${url.label}:`, error);
     }
