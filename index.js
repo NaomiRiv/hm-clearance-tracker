@@ -15,6 +15,7 @@ const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const bot = new Telegraf(BOT_TOKEN);
 
 async function fetchProducts(address) {
+  // Ensure the function can handle asynchronous calls
   const response = await fetch(address);
   const html = await response.text();
   const $ = cheerio.load(html);
@@ -45,6 +46,7 @@ async function fetchProducts(address) {
       availability: false, // Placeholder for availability, to be updated later
     })),
   }));
+  await updateProductSizesAvailability(products);
 
   // console.log(JSON.stringify(products, null, 2)); // Debugging line
 
@@ -139,11 +141,12 @@ async function getAvailableSizes(articleCode) {
 
   return availableSizesCodes;
 }
-async function updateProductSizes(products) {
+async function updateProductSizesAvailability(products) {
   for (const product of products) {
     const availableSizes = await getAvailableSizes(product.articleCode);
-
-    // TODO : Match available sizes codes with the product sizes and store them in the product object
+    product.sizes.forEach((size) => {
+      size.availability = availableSizes.includes(size.sizeCode);
+    });
   }
 }
 
@@ -183,9 +186,6 @@ async function updateProductSizes(products) {
         console.log(`No products were added to ${url.label}.`);
         continue;
       }
-
-      // Update the fetched products with available sizes
-      updateProductSizes(newProducts);
 
       // send notification
       console.log(
