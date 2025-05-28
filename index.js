@@ -101,7 +101,7 @@ async function sendProductNotification(product, category, isFirst) {
       `Telegram notification was successfully sent for product ${product["articleCode"]}`
     );
   } catch (error) {
-    logger.error(`Failed to send telegram notification:`, error);
+    logger.error(`Failed to send telegram notification: ${error.message}`);
     // TODO: try again?
   }
 }
@@ -122,8 +122,7 @@ async function getAvailableSizes(articleCode) {
   const json = await response.json();
   const availableSizesCodes = json["availability"];
   logger.info(
-    `Available sizes for ${ancestorProductCode}:`,
-    availableSizesCodes
+    `Available sizes for ${ancestorProductCode}: ${availableSizesCodes}`
   );
 
   return availableSizesCodes;
@@ -171,22 +170,23 @@ async function updateProductSizesAvailability(products) {
 
       // No new products were added, continue
       if (newProducts.length == 0) {
-        logger.info(`No products were added to ${url.label}.`);
+        logger.info(`No products were added to ${url.label}`);
         continue;
       }
       await updateProductSizesAvailability(newProducts);
 
       // send notification
       logger.info(
-        `New products found for ${url.label}:`,
-        newProducts.map((product) => product.productUrl)
+        `New products found for ${url.label}: ${newProducts
+          .map((product) => product.productUrl)
+          .join(", ")}`
       );
       sendNotifications(newProducts, url);
 
       // Update the products file
       fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
     } catch (error) {
-      logger.error(`Error processing ${url.label}:`, error);
+      logger.error(`Error processing ${url.label}: ${error.message}`);
     }
   }
 })();
