@@ -18,7 +18,7 @@ function formatNewProductMessage(product, category) {
 📌 שם המוצר: <a href="${product.productUrl}">${product.title}</a>
 📏 מידות זמינות: ${product.sizes.map((size) => size.name).join(", ")}
 💸 מחיר קודם: ${product.regularPrice}
-🔥 מחיר חדש: ${product.discountPrice}`;
+🔥 מחיר חדש: ${product.discountPrice} (${product.discountPercentage} הנחה)`;
 }
 
 async function fetchProducts(address) {
@@ -47,6 +47,7 @@ async function fetchProducts(address) {
     title: product.title,
     regularPrice: product.regularPrice,
     discountPrice: product.redPrice,
+    discountPercentage: product.discountPercentage?.replace("-", "") || "0%",
     sizes: product.sizes.map((size) => ({
       sizeCode: size.sizeCode,
       name: size.name,
