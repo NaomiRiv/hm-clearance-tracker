@@ -21,8 +21,7 @@ function formatNewProductMessage(product, category) {
 📏 מידות זמינות: ${product.sizes.map((size) => size.name).join(", ")}
 💸 מחיר קודם: ${product.regularPrice}
 🔥 מחיר חדש: ${product.discountPrice}
-🔗 לינק למוצר: ${product.productUrl}
-`;
+🔗 <a href="${product.productUrl}">לינק</a> למוצר`;
 }
 
 async function fetchProducts(address) {
