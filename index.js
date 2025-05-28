@@ -101,40 +101,9 @@ async function sendProductNotification(product, category) {
   }
 }
 
-async function sendProductsNotification(count, url) {
-  const fullUrl = baseUrl + url.url;
-  const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-  console.log(
-    `Sending telegram notification about ${count} new items added to ${fullUrl}...`
-  );
-  const res = await fetch(telegramUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: `${count} new products were added to the ${url.label.toLowerCase()} section, check them out <a href="${fullUrl}">link</a>`,
-      parse_mode: "HTML",
-    }),
-  });
-
-  const data = await res.json();
-  if (!data.ok) {
-    console.error(`Failed to send telegram notification:, ${data}`);
-  } else {
-    console.log(
-      `Telegram notification was successfully sent for ${count} products in ${url.label.toLowerCase()}`
-    );
-  }
-}
-
 function sendNotifications(newProducts, url) {
-  const newProductsCount = newProducts.length;
-  if (newProductsCount <= MAX_SEPARATE_NOTIFICATIONS) {
-    for (const product of newProducts) {
-      sendProductNotification(product, url.label);
-    }
-  } else {
-    sendProductsNotification(newProductsCount, url);
+  for (const product of newProducts) {
+    sendProductNotification(product, url.label);
   }
 }
 
