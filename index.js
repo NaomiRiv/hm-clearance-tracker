@@ -14,6 +14,17 @@ const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const bot = new Telegraf(BOT_TOKEN);
 
+function formatNewProductMessage(product, category) {
+  return `🆕 נוסף מוצר חדש בקטגוריית ${category}
+
+📌 שם המוצר: ${product.title}
+📏 מידות זמינות: ${product.sizes.map((size) => size.name).join(", ")}
+💸 מחיר קודם: ${product.regularPrice}
+🔥 מחיר חדש: ${product.discountPrice}
+🔗 לינק למוצר: ${product.productUrl}
+`;
+}
+
 async function fetchProducts(address) {
   // Ensure the function can handle asynchronous calls
   const response = await fetch(address);
@@ -46,7 +57,8 @@ async function fetchProducts(address) {
       availability: false, // Placeholder for availability, to be updated later
     })),
   }));
-  await updateProductSizesAvailability(products);
+
+  // await updateProductSizesAvailability(products); // Add this line here if you want to compare the available sizes of existing items
 
   // console.log(JSON.stringify(products, null, 2)); // Debugging line
 
@@ -67,7 +79,7 @@ function getAddedNewItems(productsPath, fetchedProducts) {
   return newProducts;
 }
 
-async function sendProductNotification(product) {
+async function sendProductNotification(product, category) {
   const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   console.log(`Sending telegram notification for ${product["productUrl"]}...`);
   const res = await fetch(telegramUrl, {
@@ -75,7 +87,7 @@ async function sendProductNotification(product) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: CHAT_ID,
-      text: `New product added, check it out <a href="${product["productUrl"]}">link</a>`,
+      text: formatNewProductMessage(product, category),
       parse_mode: "HTML",
     }),
   });
@@ -120,7 +132,7 @@ function sendNotifications(newProducts, url) {
   const newProductsCount = newProducts.length;
   if (newProductsCount <= MAX_SEPARATE_NOTIFICATIONS) {
     for (const product of newProducts) {
-      sendProductNotification(product);
+      sendProductNotification(product, url.label);
     }
   } else {
     sendProductsNotification(newProductsCount, url);
@@ -168,6 +180,7 @@ async function updateProductSizesAvailability(products) {
       const productsPath = `${databasePath}/${productsFileName}`;
       // If the products file doesn't exist, create it with the fetched data
       if (!fs.existsSync(productsPath)) {
+        await updateProductSizesAvailability(fetchedProducts);
         fs.writeFileSync(
           productsPath,
           JSON.stringify(fetchedProducts, null, 2)
@@ -186,6 +199,7 @@ async function updateProductSizesAvailability(products) {
         console.log(`No products were added to ${url.label}.`);
         continue;
       }
+      await updateProductSizesAvailability(newProducts);
 
       // send notification
       console.log(
