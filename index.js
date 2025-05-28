@@ -121,6 +121,33 @@ function sendNotifications(newProducts, url) {
   }
 }
 
+async function getAvailableSizes(articleCode) {
+  const ancestorProductCode = articleCode.slice(0, -3);
+  const colorCode = articleCode.slice(-3);
+  const url = `https://www2.hm.com/hmwebservices/service/product/il/availability/${ancestorProductCode}.json`;
+  const response = await fetch(url);
+  const json = await response.json();
+  const availableAncestorSizesCodes = json["availability"];
+  console.log(
+    `Available sizes for ${ancestorProductCode}:`,
+    availableAncestorSizesCodes
+  );
+  const availableSizesCodes = availableAncestorSizesCodes.filter((size) =>
+    size.startsWith(articleCode)
+  );
+  console.log(
+    `Relevant available sizes for ${articleCode}:`,
+    availableSizesCodes
+  );
+  return availableSizesCodes;
+}
+async function updateProductSizes(products) {
+  for (const product of products) {
+    const availableSizes = await getAvailableSizes(product.articleCode);
+    // TODO : Match available sizes codes with the product sizes and store them in the product object
+  }
+}
+
 (async () => {
   for (const url of urls) {
     console.log(`Processing ${url.label}...`);
@@ -157,6 +184,9 @@ function sendNotifications(newProducts, url) {
         console.log(`No products were added to ${url.label}.`);
         continue;
       }
+
+      // TODO : Update the fetched products with available sizes
+      updateProductSizes(newProducts);
 
       // send notification
       console.log(
