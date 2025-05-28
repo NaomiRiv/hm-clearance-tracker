@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import dotenv from "dotenv";
 import { Telegraf } from "telegraf";
 
+import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
 
 dotenv.config();
@@ -32,7 +33,7 @@ async function fetchProducts(address) {
 
   const nextDataScript = $("#__NEXT_DATA__").html();
   if (!nextDataScript) {
-    console.error("No __NEXT_DATA__ script found.");
+    logger.fatal("No __NEXT_DATA__ script found.");
     process.exit(1);
   }
 
@@ -40,7 +41,10 @@ async function fetchProducts(address) {
   const rawProducts =
     nextData.props.pageProps.plpProps.productListingProps.hits;
 
-  // console.log(JSON.stringify(rawProducts, null, 2)); // Debugging line
+  logger.debug(
+    `Fetched raw products data from ${address}: 
+    ${JSON.stringify(rawProducts[0], null, 2)}`
+  );
 
   // Extract the relevant product data
   const products = rawProducts.map((product) => ({
@@ -60,7 +64,10 @@ async function fetchProducts(address) {
 
   // await updateProductSizesAvailability(products); // Add this line here if you want to compare the available sizes of existing items
 
-  // console.log(JSON.stringify(products, null, 2)); // Debugging line
+  logger.debug(
+    `Fetched processed products data from ${address}: 
+    ${JSON.stringify(rawProducts[0], null, 2)}`
+  );
 
   return products;
 }
@@ -80,7 +87,7 @@ function getAddedNewItems(productsPath, fetchedProducts) {
 }
 
 async function sendProductNotification(product, category, isFirst) {
-  console.log(`Sending telegram notification for ${product["productUrl"]}...`);
+  logger.info(`Sending telegram notification for ${product["productUrl"]}...`);
   try {
     await bot.telegram.sendMessage(
       CHAT_ID,
@@ -90,11 +97,12 @@ async function sendProductNotification(product, category, isFirst) {
         disable_notification: !isFirst,
       }
     );
-    console.log(
+    logger.info(
       `Telegram notification was successfully sent for product ${product["articleCode"]}`
     );
   } catch (error) {
-    console.error(`Failed to send telegram notification:`, error);
+    logger.error(`Failed to send telegram notification:`, error);
+    // TODO: try again?
   }
 }
 
@@ -113,7 +121,7 @@ async function getAvailableSizes(articleCode) {
   const response = await fetch(url);
   const json = await response.json();
   const availableSizesCodes = json["availability"];
-  console.log(
+  logger.info(
     `Available sizes for ${ancestorProductCode}:`,
     availableSizesCodes
   );
@@ -131,7 +139,7 @@ async function updateProductSizesAvailability(products) {
 
 (async () => {
   for (const url of urls) {
-    console.log(`Processing ${url.label}...`);
+    logger.info(`Processing ${url.label}...`);
 
     const productsFileName = url.fileName;
     try {
@@ -152,7 +160,7 @@ async function updateProductSizesAvailability(products) {
           productsPath,
           JSON.stringify(fetchedProducts, null, 2)
         );
-        console.log(
+        logger.info(
           `Products file (${productsPath}) created with fetched products for ${url.label} in the Database folder.`
         );
         // Nothing to compare to, continue
@@ -163,13 +171,13 @@ async function updateProductSizesAvailability(products) {
 
       // No new products were added, continue
       if (newProducts.length == 0) {
-        console.log(`No products were added to ${url.label}.`);
+        logger.info(`No products were added to ${url.label}.`);
         continue;
       }
       await updateProductSizesAvailability(newProducts);
 
       // send notification
-      console.log(
+      logger.info(
         `New products found for ${url.label}:`,
         newProducts.map((product) => product.productUrl)
       );
@@ -178,7 +186,7 @@ async function updateProductSizesAvailability(products) {
       // Update the products file
       fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
     } catch (error) {
-      console.error(`Error processing ${url.label}:`, error);
+      logger.error(`Error processing ${url.label}:`, error);
     }
   }
 })();
