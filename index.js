@@ -78,32 +78,30 @@ function getAddedNewItems(productsPath, fetchedProducts) {
   return newProducts;
 }
 
-async function sendProductNotification(product, category) {
-  const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+async function sendProductNotification(product, category, isFirst) {
   console.log(`Sending telegram notification for ${product["productUrl"]}...`);
-  const res = await fetch(telegramUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: formatNewProductMessage(product, category),
-      parse_mode: "HTML",
-    }),
-  });
-
-  const data = await res.json();
-  if (!data.ok) {
-    console.error(`Failed to send telegram notification:, ${data}`);
-  } else {
-    console.log(
-      `Telegram notification was successfully sent for product ${product["articleId"]}`
+  try {
+    await bot.telegram.sendMessage(
+      CHAT_ID,
+      formatNewProductMessage(product, category),
+      {
+        parse_mode: "HTML",
+        disable_notification: !isFirst,
+      }
     );
+    console.log(
+      `Telegram notification was successfully sent for product ${product["articleCode"]}`
+    );
+  } catch (error) {
+    console.error(`Failed to send telegram notification:`, error);
   }
 }
 
 function sendNotifications(newProducts, url) {
+  let isFirst = true;
   for (const product of newProducts) {
-    sendProductNotification(product, url.label);
+    sendProductNotification(product, url.label, isFirst);
+    isFirst = false;
   }
 }
 
