@@ -15,11 +15,10 @@ const bot = new Telegraf(BOT_TOKEN);
 function formatNewProductMessage(product, category) {
   return `🆕 נוסף מוצר חדש בקטגוריית ${category}
 
-📌 שם המוצר: ${product.title}
+📌 שם המוצר: <a href="${product.productUrl}">${product.title}</a>
 📏 מידות זמינות: ${product.sizes.map((size) => size.name).join(", ")}
 💸 מחיר קודם: ${product.regularPrice}
-🔥 מחיר חדש: ${product.discountPrice}
-🔗 <a href="${product.productUrl}">לינק</a> למוצר`;
+🔥 מחיר חדש: ${product.discountPrice}`;
 }
 
 async function fetchProducts(address) {
