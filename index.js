@@ -39,7 +39,11 @@ async function fetchProducts(address) {
     title: product.title,
     regularPrice: product.regularPrice,
     discountPrice: product.redPrice,
-    sizes: product.sizes,
+    sizes: product.sizes.map((size) => ({
+      sizeCode: size.sizeCode,
+      name: size.name,
+      availability: false, // Placeholder for availability, to be updated later
+    })),
   }));
 
   // console.log(JSON.stringify(products, null, 2)); // Debugging line
@@ -127,23 +131,18 @@ async function getAvailableSizes(articleCode) {
   const url = `https://www2.hm.com/hmwebservices/service/product/il/availability/${ancestorProductCode}.json`;
   const response = await fetch(url);
   const json = await response.json();
-  const availableAncestorSizesCodes = json["availability"];
+  const availableSizesCodes = json["availability"];
   console.log(
     `Available sizes for ${ancestorProductCode}:`,
-    availableAncestorSizesCodes
-  );
-  const availableSizesCodes = availableAncestorSizesCodes.filter((size) =>
-    size.startsWith(articleCode)
-  );
-  console.log(
-    `Relevant available sizes for ${articleCode}:`,
     availableSizesCodes
   );
+
   return availableSizesCodes;
 }
 async function updateProductSizes(products) {
   for (const product of products) {
     const availableSizes = await getAvailableSizes(product.articleCode);
+
     // TODO : Match available sizes codes with the product sizes and store them in the product object
   }
 }
@@ -185,7 +184,7 @@ async function updateProductSizes(products) {
         continue;
       }
 
-      // TODO : Update the fetched products with available sizes
+      // Update the fetched products with available sizes
       updateProductSizes(newProducts);
 
       // send notification
