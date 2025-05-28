@@ -7,8 +7,6 @@ import { baseUrl, urls } from "./urls.js";
 
 dotenv.config();
 
-const MAX_SEPARATE_NOTIFICATIONS = 6;
-
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
