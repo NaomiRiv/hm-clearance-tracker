@@ -1,17 +1,14 @@
 import fs from "fs";
 import * as cheerio from "cheerio";
-import dotenv from "dotenv";
 import { Telegraf } from "telegraf";
 
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
 
-dotenv.config();
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+const chatId = process.env.TELEGRAM_CHAT_ID;
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-const bot = new Telegraf(BOT_TOKEN);
+const bot = new Telegraf(botToken);
 
 function formatNewProductMessage(product, category) {
   return `🆕 נוסף מוצר חדש בקטגוריית ${category}
@@ -90,7 +87,7 @@ async function sendProductNotification(product, category, isFirst) {
   logger.info(`Sending telegram notification for ${product["productUrl"]}...`);
   try {
     await bot.telegram.sendMessage(
-      CHAT_ID,
+      chatId,
       formatNewProductMessage(product, category),
       {
         parse_mode: "HTML",
