@@ -4,7 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:prod": "node --env-file=.env index.js",
+    "start:dev": "node --env-file=.env.dev index.js"
   },
   "keywords": [],
   "author": "",
