@@ -1,8 +1,9 @@
 node_modules/
 .env
+.env.dev
 .DS_Store
 
 tracking_files/
-logfile.log
+app.log
 
 package-lock.json
