@@ -151,7 +151,6 @@ async function updateProductSizesAvailability(products) {
       const productsPath = `${databasePath}/${productsFileName}`;
       // If the products file doesn't exist, create it with the fetched data
       if (!fs.existsSync(productsPath)) {
-        await updateProductSizesAvailability(fetchedProducts);
         fs.writeFileSync(
           productsPath,
           JSON.stringify(fetchedProducts, null, 2)
@@ -170,6 +169,8 @@ async function updateProductSizesAvailability(products) {
         logger.info(`No products were added to ${url.label}`);
         continue;
       }
+
+      // Update the availability of sizes for new products before sending notifications
       await updateProductSizesAvailability(newProducts);
 
       // send notification
