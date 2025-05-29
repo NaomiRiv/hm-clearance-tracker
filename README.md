@@ -8,7 +8,7 @@ The script retrieves product data from specified URLs and sends notifications ab
 **Configurable URLs:** Easily specify which pages to monitor via the urls.js file.
 
 ## Prerequisites
-Node.js (version 14 or higher)
+Node.js (version 20 or higher)
 
 ## Running periodically with Cron
 To automatically run the script at regular intervals, use cron.
