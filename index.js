@@ -6,9 +6,21 @@ import cron from "node-cron";
 
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
+import { log } from "console";
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
+const cronExp = process.env.CRON_EXP;
+
+if (!botToken) {
+  logger.fatal("Missing bot token");
+  process.exit(1);
+}
+
+if (!chatId) {
+  logger.fatal("Missing chatId");
+  process.exit(1);
+}
 
 const bot = new Telegraf(botToken);
 
@@ -221,7 +233,7 @@ async function run() {
 }
 
 logger.info("Script started");
-cron.schedule("* * * * *", () => {
+cron.schedule(cronExp, () => {
   logger.info("Initiating run");
   run();
   logger.info("Run finished");
