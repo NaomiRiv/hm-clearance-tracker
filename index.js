@@ -2,6 +2,8 @@ import fs from "fs";
 import * as cheerio from "cheerio";
 import { Telegraf } from "telegraf";
 
+import cron from "node-cron";
+
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
 
@@ -51,7 +53,7 @@ async function fetchProducts(address) {
   const nextDataScript = $("#__NEXT_DATA__").html();
   if (!nextDataScript) {
     logger.fatal("No __NEXT_DATA__ script found.");
-    process.exit(1);
+    return;
   }
 
   const nextData = JSON.parse(nextDataScript);
@@ -162,7 +164,7 @@ async function updateProductSizesAvailability(products) {
   }
 }
 
-(async () => {
+async function run() {
   for (const url of urls) {
     logger.info(`Processing ${url.label}...`);
 
@@ -216,4 +218,11 @@ async function updateProductSizesAvailability(products) {
       logger.error(`Error processing ${url.label}: ${error.message}`);
     }
   }
-})();
+}
+
+logger.info("Script started");
+cron.schedule("* * * * *", () => {
+  logger.info("Initiating run");
+  run();
+  logger.info("Run finished");
+});
