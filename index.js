@@ -19,15 +19,15 @@ const AvailabilityStatus = Object.freeze({
 
 function formatNewProductMessage(product, category) {
   const inStockSizes = product.sizes
-    .filter(
-      (size) =>
-        size.availability === AvailabilityStatus.FEW_LEFT ||
-        size.availability === AvailabilityStatus.IN_STOCK
+    .filter(({ availability }) =>
+      [AvailabilityStatus.FEW_LEFT, AvailabilityStatus.IN_STOCK].includes(
+        availability
+      )
     )
     .map((s) => s.name);
 
   const fewLeftSizes = product.sizes
-    .filter((size) => size.availability === AvailabilityStatus.FEW_LEFT)
+    .filter(({ availability }) => availability === AvailabilityStatus.FEW_LEFT)
     .map((s) => s.name);
 
   return `🆕 נוסף מוצר חדש בקטגוריית ${category}
@@ -36,10 +36,9 @@ function formatNewProductMessage(product, category) {
 📏 מידות זמינות:${inStockSizes.length > 0 ? ` ${inStockSizes.join(", ")}` : ""}
 ${
   fewLeftSizes.length > 0
-    ? `⚠️ נותרו יחידות בודדות מהמידות: ${fewLeftSizes.join(", ")}`
+    ? `⚠️ נותרו יחידות בודדות מהמידות: ${fewLeftSizes.join(", ")}\n`
     : ""
-}
-💸 מחיר קודם: ${product.regularPrice}  
+}💸 מחיר קודם: ${product.regularPrice}  
 🔥 מחיר חדש: ${product.discountPrice} (${product.discountPercentage} הנחה)`;
 }
 
