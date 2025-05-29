@@ -10,15 +10,36 @@ const chatId = process.env.TELEGRAM_CHAT_ID;
 
 const bot = new Telegraf(botToken);
 
+const AvailabilityStatus = Object.freeze({
+  UNDEFINED: -1,
+  OUT_OF_STOCK: 0,
+  FEW_LEFT: 1,
+  IN_STOCK: 2,
+});
+
 function formatNewProductMessage(product, category) {
+  const inStockSizes = product.sizes
+    .filter(
+      (size) =>
+        size.availability === AvailabilityStatus.FEW_LEFT ||
+        size.availability === AvailabilityStatus.IN_STOCK
+    )
+    .map((s) => s.name);
+
+  const fewLeftSizes = product.sizes
+    .filter((size) => size.availability === AvailabilityStatus.FEW_LEFT)
+    .map((s) => s.name);
+
   return `🆕 נוסף מוצר חדש בקטגוריית ${category}
 
 📌 <a href="${product.productUrl}">${product.title}</a>
-📏 מידות זמינות: ${product.sizes
-    .filter((size) => size.availability)
-    .map((size) => size.name)
-    .join(", ")}
-💸 מחיר קודם: ${product.regularPrice}
+📏 מידות זמינות:${inStockSizes.length > 0 ? ` ${inStockSizes.join(", ")}` : ""}
+${
+  fewLeftSizes.length > 0
+    ? `⚠️ נותרו יחידות בודדות מהמידות: ${fewLeftSizes.join(", ")}`
+    : ""
+}
+💸 מחיר קודם: ${product.regularPrice}  
 🔥 מחיר חדש: ${product.discountPrice} (${product.discountPercentage} הנחה)`;
 }
 
@@ -55,7 +76,7 @@ async function fetchProducts(address) {
     sizes: product.sizes.map((size) => ({
       sizeCode: size.sizeCode,
       name: size.name,
-      availability: false, // Placeholder for availability, to be updated later
+      availability: AvailabilityStatus.UNDEFINED, // Placeholder for availability, to be updated later
     })),
   }));
 
@@ -118,17 +139,26 @@ async function getAvailableSizes(articleCode) {
   const response = await fetch(url);
   const json = await response.json();
   const availableSizesCodes = json["availability"];
+  const fewLeftSizesCodes = json["fewPieceLeft"];
   logger.info(
     `Available sizes for ${ancestorProductCode}: ${availableSizesCodes}`
   );
 
-  return availableSizesCodes;
+  return [availableSizesCodes, fewLeftSizesCodes];
 }
 async function updateProductSizesAvailability(products) {
   for (const product of products) {
-    const availableSizes = await getAvailableSizes(product.articleCode);
+    const [availableSizesCodes, fewLeftSizesCodes] = await getAvailableSizes(
+      product.articleCode
+    );
     product.sizes.forEach((size) => {
-      size.availability = availableSizes.includes(size.sizeCode);
+      if (fewLeftSizesCodes.includes(size.sizeCode)) {
+        size.availability = AvailabilityStatus.FEW_LEFT;
+      } else if (availableSizesCodes.includes(size.sizeCode)) {
+        size.availability = AvailabilityStatus.IN_STOCK;
+      } else {
+        size.availability = AvailabilityStatus.OUT_OF_STOCK;
+      }
     });
   }
 }
