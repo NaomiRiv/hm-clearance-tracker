@@ -1,6 +1,5 @@
 node_modules/
-.env
-.env.dev
+.env*
 .DS_Store
 
 tracking_files/
