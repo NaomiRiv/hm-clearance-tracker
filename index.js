@@ -13,7 +13,7 @@ const bot = new Telegraf(botToken);
 function formatNewProductMessage(product, category) {
   return `🆕 נוסף מוצר חדש בקטגוריית ${category}
 
-📌 שם המוצר: <a href="${product.productUrl}">${product.title}</a>
+📌 <a href="${product.productUrl}">${product.title}</a>
 📏 מידות זמינות: ${product.sizes
     .filter((size) => size.availability)
     .map((size) => size.name)
