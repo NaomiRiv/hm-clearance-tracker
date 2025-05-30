@@ -224,7 +224,7 @@ async function run() {
           .map((product) => product.productUrl)
           .join(", ")}`
       );
-      sendNotifications(newProducts, url);
+      await sendNotifications(newProducts, url);
 
       // Update the products file
       fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
