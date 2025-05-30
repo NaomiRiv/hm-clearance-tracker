@@ -72,7 +72,7 @@ async function fetchProducts(address) {
   const rawProducts =
     nextData.props.pageProps.plpProps.productListingProps.hits;
 
-  logger.debug(
+  logger.trace(
     `Fetched raw products data from ${address}: 
     ${JSON.stringify(rawProducts[0], null, 2)}`
   );
@@ -95,7 +95,7 @@ async function fetchProducts(address) {
 
   // await updateProductSizesAvailability(products); // Add this line here if you want to compare the available sizes of existing items
 
-  logger.debug(
+  logger.trace(
     `Fetched processed products data from ${address}: 
     ${JSON.stringify(rawProducts[0], null, 2)}`
   );
@@ -177,6 +177,8 @@ async function updateProductSizesAvailability(products) {
 }
 
 async function run() {
+  logger.info("Initiating run");
+
   for (const url of urls) {
     logger.info(`Processing ${url.label}...`);
 
@@ -226,15 +228,15 @@ async function run() {
 
       // Update the products file
       fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
+      logger.info(`Product files updated for ${url.label}`);
     } catch (error) {
       logger.error(`Error processing ${url.label}: ${error.message}`);
     }
   }
-}
-
-logger.info("Script started");
-cron.schedule(cronExp, () => {
-  logger.info("Initiating run");
-  run();
   logger.info("Run finished");
+}
+logger.info("Script started");
+await run();
+cron.schedule(cronExp, async () => {
+  await run();
 });
