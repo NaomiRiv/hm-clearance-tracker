@@ -132,15 +132,22 @@ async function sendProductNotification(product, category, isFirst) {
       `Telegram notification was successfully sent for product ${product["articleCode"]}`
     );
   } catch (error) {
-    logger.error(`Failed to send telegram notification: ${error.message}`);
-    // TODO: try again?
+    logger.error(
+      `Failed to send telegram notification: ${error.response.description}`
+    );
+    if (error.response.error_code === 429) {
+      const retryAfter = error.response.parameters.retry_after;
+      logger.warn(`Rate limited. Retrying after ${retryAfter} seconds...`);
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+      return sendProductNotification(product, category, isFirst);
+    }
   }
 }
 
-function sendNotifications(newProducts, url) {
+async function sendNotifications(newProducts, url) {
   let isFirst = true;
   for (const product of newProducts) {
-    sendProductNotification(product, url.label, isFirst);
+    await sendProductNotification(product, url.label, isFirst);
     isFirst = false;
   }
 }
