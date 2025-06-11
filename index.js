@@ -6,7 +6,6 @@ import cron from "node-cron";
 
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
-import { log } from "console";
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -44,7 +43,7 @@ function formatNewProductMessage(product, category) {
     .filter(({ availability }) => availability === AvailabilityStatus.FEW_LEFT)
     .map((s) => s.name);
 
-  return `🆕 נוסף מוצר חדש בקטגוריית ${category}
+  return `🆕 נוסף מוצר חדש בקטגוריית <b>${category}</b>
 
 📌 <a href="${product.productUrl}">${product.title}</a>
 📏 מידות זמינות:${inStockSizes.length > 0 ? ` ${inStockSizes.join(", ")}` : ""}
