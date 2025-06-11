@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
     "cheerio": "^1.0.0",
     "node-cron": "^4.0.7",
     "pino": "^9.7.0",
