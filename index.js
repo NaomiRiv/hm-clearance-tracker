@@ -10,7 +10,7 @@ import { baseUrl, urls } from "./urls.js";
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
-const cronExp = process.env.CRON_EXP;
+const cronExp = process.env.CRON_EXP ?? "0 8,12,16,20 * * *";
 
 if (!botToken) {
   logger.fatal("Missing bot token");
@@ -20,11 +20,6 @@ if (!botToken) {
 if (!chatId) {
   logger.fatal("Missing chatId");
   process.exit(1);
-}
-
-if (!cronExp) {
-  // Every 4 hours from 8am to 10pm
-  cronExp = "0 8,12,16,20 * * *";
 }
 
 const bot = new Telegraf(botToken);
