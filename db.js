@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import logger from "./logger.js";
+import fs from "fs";
 
 const db = new Database("products.db");
 
@@ -30,6 +31,18 @@ const db = new Database("products.db");
 
   logger.info("DB initialized.");
 })();
+
+// Check if database exists and is not empty
+function isDatabaseSynced() {
+  const dbPath = "products.db";
+  if (!fs.existsSync(dbPath)) {
+    return false;
+  }
+  const productCount = db
+    .prepare("SELECT COUNT(*) as count FROM products")
+    .get().count;
+  return productCount > 0;
+}
 
 // Prepared insert statements
 const insertProduct = db.prepare(`
@@ -120,4 +133,4 @@ function syncDB(newProducts, fetchedProductsArticleCodes, productsCategory) {
   }
 }
 
-export { syncDB, getNewAddedProducts };
+export { syncDB, getNewAddedProducts, isDatabaseSynced };

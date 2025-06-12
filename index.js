@@ -4,7 +4,7 @@ import { Telegraf } from "telegraf";
 
 import cron from "node-cron";
 
-import { syncDB, getNewAddedProducts } from "./db.js";
+import { syncDB, getNewAddedProducts, isDatabaseSynced } from "./db.js";
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
 
@@ -20,6 +20,11 @@ if (!botToken) {
 if (!chatId) {
   logger.fatal("Missing chatId");
   process.exit(1);
+}
+
+if (!cronExp) {
+  // Every 4 hours from 8am to 10pm
+  cronExp = "0 8,12,16,20 * * *";
 }
 
 const bot = new Telegraf(botToken);
@@ -186,6 +191,10 @@ async function updateProductSizesAvailability(products) {
 async function run() {
   logger.info("Initiating run");
 
+  // If isDBSynced we will send notifications, else, this is sync run and notifications will not be sent.
+  const isDBSynced = isDatabaseSynced();
+  logger.info(`Database synced: ${isDBSynced}`);
+
   for (const url of urls) {
     logger.info(`Processing ${url.label}...`);
 
@@ -218,7 +227,10 @@ async function run() {
           .map((product) => product.productUrl)
           .join(", ")}`
       );
-      await sendNotifications(newProducts, url);
+
+      if (isDBSynced) {
+        await sendNotifications(newProducts, url);
+      }
 
       // Update the DB
       syncDB(newProducts, fetchedProductsArticleCodes, productsCategory);
