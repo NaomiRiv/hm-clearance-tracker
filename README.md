@@ -10,12 +10,14 @@ helping you to track clearance deals without wasting your time.
 - Saves items to a local SQLite database 
 - Docker-compatible for easy deployment
 - Basic logging support
+- Telegram notifications
 
 ---
 
 ## 📦 Tech Stack
 - Node.js (version 20 or higher)
 - Cheerio (for HTTP & HTML parsing)
+- Telegraf (for Telegram notifications)
 - SQLite (via `better-sqlite3`)
 - Docker
 
