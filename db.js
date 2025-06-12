@@ -2,7 +2,9 @@ import Database from "better-sqlite3";
 import logger from "./logger.js";
 import fs from "fs";
 
-const db = new Database("products.db");
+const DATABASE_PATH = "./database.db";
+
+const db = new Database(DATABASE_PATH);
 
 // Create tables if not exist
 (() => {
@@ -34,10 +36,10 @@ const db = new Database("products.db");
 
 // Check if database exists and is not empty
 function isDatabaseSynced() {
-  const dbPath = "products.db";
-  if (!fs.existsSync(dbPath)) {
+  if (!fs.existsSync(DATABASE_PATH)) {
     return false;
   }
+
   const productCount = db
     .prepare("SELECT COUNT(*) as count FROM products")
     .get().count;
