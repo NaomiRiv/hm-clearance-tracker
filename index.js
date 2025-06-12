@@ -4,6 +4,7 @@ import { Telegraf } from "telegraf";
 
 import cron from "node-cron";
 
+import { syncDB, getNewAddedProducts } from "./db.js";
 import logger from "./logger.js";
 import { baseUrl, urls } from "./urls.js";
 
@@ -55,7 +56,7 @@ ${
 🔥 מחיר חדש: ${product.discountPrice} (${product.discountPercentage} הנחה)`;
 }
 
-async function fetchProducts(address) {
+async function fetchProducts(address, category) {
   // Ensure the function can handle asynchronous calls
   const response = await fetch(address);
   const html = await response.text();
@@ -78,6 +79,7 @@ async function fetchProducts(address) {
 
   // Extract the relevant product data
   const products = rawProducts.map((product) => ({
+    category: category,
     imageSrc: product.imageProductSrc,
     articleCode: product.articleCode,
     productUrl: product.pdpUrl,
@@ -91,8 +93,6 @@ async function fetchProducts(address) {
       availability: AvailabilityStatus.UNDEFINED, // Placeholder for availability, to be updated later
     })),
   }));
-
-  // await updateProductSizesAvailability(products); // Add this line here if you want to compare the available sizes of existing items
 
   logger.trace(
     `Fetched processed products data from ${address}: 
@@ -131,14 +131,15 @@ async function sendProductNotification(product, category, isFirst) {
       `Telegram notification was successfully sent for product ${product["articleCode"]}`
     );
   } catch (error) {
-    logger.error(
-      `Failed to send telegram notification: ${error.response.description}`
-    );
     if (error.response.error_code === 429) {
       const retryAfter = error.response.parameters.retry_after;
       logger.warn(`Rate limited. Retrying after ${retryAfter} seconds...`);
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
       return sendProductNotification(product, category, isFirst);
+    } else {
+      logger.error(
+        `Failed to send telegram notification: ${error.response.description}`
+      );
     }
   }
 }
@@ -188,32 +189,19 @@ async function run() {
   for (const url of urls) {
     logger.info(`Processing ${url.label}...`);
 
-    const productsFileName = url.fileName;
+    const productsCategory = url.category;
     try {
       // Fetch products from the website
-      const fetchedProducts = await fetchProducts(baseUrl + url.url);
+      const fetchedProducts = await fetchProducts(
+        baseUrl + url.url,
+        productsCategory
+      );
 
-      // If Database folder doesn't exist, create it
-      const databasePath = "./tracking_files";
-      if (!fs.existsSync(databasePath)) {
-        fs.mkdirSync(databasePath);
-      }
+      const fetchedProductsArticleCodes = new Set(
+        fetchedProducts.map((product) => product.articleCode)
+      );
 
-      const productsPath = `${databasePath}/${productsFileName}`;
-      // If the products file doesn't exist, create it with the fetched data
-      if (!fs.existsSync(productsPath)) {
-        fs.writeFileSync(
-          productsPath,
-          JSON.stringify(fetchedProducts, null, 2)
-        );
-        logger.info(
-          `Products file (${productsPath}) created with fetched products for ${url.label} in the Database folder.`
-        );
-        // Nothing to compare to, continue
-        continue;
-      }
-
-      const newProducts = getAddedNewItems(productsPath, fetchedProducts);
+      const newProducts = getNewAddedProducts(fetchedProducts);
 
       // No new products were added, continue
       if (newProducts.length == 0) {
@@ -232,9 +220,8 @@ async function run() {
       );
       await sendNotifications(newProducts, url);
 
-      // Update the products file
-      fs.writeFileSync(productsPath, JSON.stringify(fetchedProducts, null, 2));
-      logger.info(`Product files updated for ${url.label}`);
+      // Update the DB
+      syncDB(newProducts, fetchedProductsArticleCodes, productsCategory);
     } catch (error) {
       logger.error(`Error processing ${url.label}: ${error.message}`);
     }

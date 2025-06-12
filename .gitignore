@@ -4,5 +4,6 @@ node_modules/
 
 tracking_files/
 app.log
+products.db
 
 package-lock.json
