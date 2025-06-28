@@ -11,6 +11,8 @@ import { baseUrl, urls } from "./urls.js";
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 const cronExp = process.env.CRON_EXP ?? "0 8,12,16,20 * * *";
+const items_TTL = process.env.ITEMS_TTL ?? "604800000"; // Default is a week
+const maxProductsInAPage = 36;
 
 if (!botToken) {
   logger.fatal("Missing bot token");
@@ -56,11 +58,27 @@ ${
 🔥 מחיר חדש: ${product.discountPrice} (${product.discountPercentage} הנחה)`;
 }
 
-async function fetchProducts(address, category) {
+async function fetchAllPages(address, category, date) {
+  const addressTemplate = `${address}?page=1`;
+
+  return await fetchProducts(addressTemplate, category, date, 1);
+}
+
+async function fetchProducts(addressTemplate, category, date, page) {
   // Ensure the function can handle asynchronous calls
+  const address = addressTemplate.replace(/(\?|&)page=\d+/, `$1page=${page}`);
   const response = await fetch(address);
   const html = await response.text();
   const $ = cheerio.load(html);
+
+  // Save response for debug
+  /*
+  const formatedDate = new Date(date).toISOString().replace(/[:.]/g, "-");
+  if (!fs.existsSync("./logs")) {
+    fs.mkdirSync("./logs");
+  }
+  fs.writeFileSync(`./logs/${formatedDate}`, html, { flag: "a" });
+*/
 
   const nextDataScript = $("#__NEXT_DATA__").html();
   if (!nextDataScript) {
@@ -72,15 +90,18 @@ async function fetchProducts(address, category) {
   const rawProducts =
     nextData.props.pageProps.plpProps.productListingProps.hits;
 
+  logger.info(`Fetched raw products data from ${address}`);
   logger.trace(
-    `Fetched raw products data from ${address}: 
+    ` 
     ${JSON.stringify(rawProducts[0], null, 2)}`
   );
 
   // Extract the relevant product data
   const products = rawProducts.map((product) => ({
     category: category,
-    imageSrc: product.imageProductSrc,
+    imageSrc: product.imageProductSrc.startsWith("http")
+      ? product.imageProductSrc
+      : `https://image.hm.com/${product.imageProductSrc.replace(/^\/+/, "")}`,
     articleCode: product.articleCode,
     productUrl: product.pdpUrl,
     title: product.title,
@@ -94,26 +115,21 @@ async function fetchProducts(address, category) {
     })),
   }));
 
+  const productsCount = products.length;
+
   logger.trace(
     `Fetched processed products data from ${address}: 
     ${JSON.stringify(rawProducts[0], null, 2)}`
   );
 
-  return products;
-}
+  logger.info(`Fetched ${productsCount} products.`);
 
-function getAddedNewItems(productsPath, fetchedProducts) {
-  // Read the existing products from the file
-  const existingProducts = JSON.parse(fs.readFileSync(productsPath, "utf-8"));
+  const nextPagesProducts =
+    productsCount < maxProductsInAPage
+      ? []
+      : await fetchProducts(address, category, date, page + 1);
 
-  // Compare the fetched products with the existing ones
-  const existingProductCodes = new Set(
-    existingProducts.map((product) => product.articleCode)
-  );
-  const newProducts = fetchedProducts.filter(
-    (product) => !existingProductCodes.has(product.articleCode)
-  );
-  return newProducts;
+  return products.concat(nextPagesProducts);
 }
 
 async function sendProductNotification(product, category, isFirst) {
@@ -160,7 +176,7 @@ async function getAvailableSizes(articleCode) {
   const json = await response.json();
   const availableSizesCodes = json["availability"];
   const fewLeftSizesCodes = json["fewPieceLeft"];
-  logger.info(
+  logger.trace(
     `Available sizes for ${ancestorProductCode}: ${availableSizesCodes}`
   );
 
@@ -185,7 +201,7 @@ async function updateProductSizesAvailability(products) {
 
 async function run() {
   logger.info("Initiating run");
-
+  const date = Date.now();
   // If isDBSynced we will send notifications, else, this is sync run and notifications will not be sent.
   const isDBSynced = isDatabaseSynced();
   logger.info(`Database synced: ${isDBSynced}`);
@@ -196,31 +212,30 @@ async function run() {
     const productsCategory = url.category;
     try {
       // Fetch products from the website
-      const fetchedProducts = await fetchProducts(
+      const fetchedProducts = await fetchAllPages(
         baseUrl + url.url,
-        productsCategory
-      );
-
-      const fetchedProductsArticleCodes = new Set(
-        fetchedProducts.map((product) => product.articleCode)
+        productsCategory,
+        date
       );
 
       const newProducts = getNewAddedProducts(fetchedProducts);
 
       // No new products were added, continue
+      /*
       if (newProducts.length == 0) {
         logger.info(`No products were added to ${url.label}`);
         continue;
       }
+      */
 
       // Update the availability of sizes for new products before sending notifications
-      await updateProductSizesAvailability(newProducts);
+      await updateProductSizesAvailability(fetchedProducts);
 
       // send notification
       logger.info(
-        `New products found for ${url.label}: ${newProducts
-          .map((product) => product.productUrl)
-          .join(", ")}`
+        `New ${newProducts.length} products found for ${
+          url.label
+        }: ${newProducts.map((product) => product.articleCode).join(", ")}`
       );
 
       if (isDBSynced) {
@@ -228,7 +243,8 @@ async function run() {
       }
 
       // Update the DB
-      syncDB(newProducts, fetchedProductsArticleCodes, productsCategory);
+      logger.info(`Syncing DB for ${url.label}...`);
+      syncDB(fetchedProducts, date, items_TTL);
     } catch (error) {
       logger.error(`Error processing ${url.label}: ${error.message}`);
     }

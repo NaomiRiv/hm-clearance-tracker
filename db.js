@@ -17,7 +17,8 @@ const db = new Database(DATABASE_PATH);
             title TEXT,
             regularPrice TEXT,
             discountPrice TEXT,
-            discountPercentage TEXT
+            discountPercentage TEXT,
+            lastSeen INT
         );
     `);
 
@@ -50,8 +51,8 @@ function isDatabaseSynced() {
 const insertProduct = db.prepare(`
   INSERT OR REPLACE INTO products (
     category, articleCode, imageSrc, productUrl, title,
-    regularPrice, discountPrice, discountPercentage
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    regularPrice, discountPrice, discountPercentage, lastSeen
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const insertSize = db.prepare(`
@@ -61,7 +62,7 @@ const insertSize = db.prepare(`
 `);
 
 // Insert full product + sizes
-function insertFullProduct(product, category) {
+function insertFullProduct(product, date) {
   insertProduct.run(
     product.category,
     product.articleCode,
@@ -70,7 +71,8 @@ function insertFullProduct(product, category) {
     product.title,
     product.regularPrice,
     product.discountPrice,
-    product.discountPercentage
+    product.discountPercentage,
+    date
   );
 
   for (const size of product.sizes) {
@@ -99,39 +101,35 @@ function getNewAddedProducts(fetchedProducts) {
   );
 }
 
-function getArticleCodesToRemove(fetchedArticleCodes, productsCategory) {
-  const dbArticleCodes = db
-    .prepare(`SELECT articleCode FROM products WHERE category = ?`)
-    .all(productsCategory)
-    .map((row) => row.articleCode);
-  return dbArticleCodes.filter((code) => !fetchedArticleCodes.has(code));
+// Sync
+function syncDB(fetchedProducts, date, items_TTL) {
+  // Update new products
+  logger.info(`Syncing ${fetchedProducts.length} products to the database.`);
+
+  for (const product of fetchedProducts) {
+    insertFullProduct(product, date);
+    logger.trace(`Updated product: ${product.articleCode}`);
+  }
+  cleanDB(items_TTL);
 }
 
-// Sync
-function syncDB(newProducts, fetchedProductsArticleCodes, productsCategory) {
-  // Add new products
-  for (const product of newProducts) {
-    insertFullProduct(product);
-    logger.info(`Inserted product: ${product.articleCode}`);
-  }
+function cleanDB(items_TTL) {
+  // Remove products not seen in the last 7 days (604800000 ms)
+  const threshold = Date.now() - items_TTL;
+  const oldProducts = db
+    .prepare("SELECT articleCode FROM products WHERE lastSeen < ?")
+    .all(threshold);
 
-  // Remove products not in fetchedProductsArticleCodes and are the the same productsCategory
-  const toRemove = getArticleCodesToRemove(
-    fetchedProductsArticleCodes,
-    productsCategory
-  );
-
-  if (toRemove.length > 0) {
-    const removePlaceholders = toRemove.map(() => "?").join(",");
+  if (oldProducts.length > 0) {
+    const articleCodes = oldProducts.map((p) => p.articleCode);
+    const placeholders = articleCodes.map(() => "?").join(",");
+    db.prepare(`DELETE FROM sizes WHERE articleCode IN (${placeholders})`).run(
+      ...articleCodes
+    );
     db.prepare(
-      `DELETE FROM sizes WHERE articleCode IN (${removePlaceholders})`
-    ).run(...toRemove);
-    db.prepare(
-      `DELETE FROM products WHERE articleCode IN (${removePlaceholders})`
-    ).run(...toRemove);
-    logger.info(`Removed products: ${toRemove.join(", ")}`);
-  } else {
-    logger.info("No products to remove.");
+      `DELETE FROM products WHERE articleCode IN (${placeholders})`
+    ).run(...articleCodes);
+    logger.info(`Removed ${articleCodes.length} old products from DB.`);
   }
 }
 
