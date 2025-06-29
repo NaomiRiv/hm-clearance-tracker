@@ -1,6 +1,8 @@
 node_modules/
 .env*
 .DS_Store
+/logs
+/src
 
 app.log
 database.db

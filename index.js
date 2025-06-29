@@ -229,7 +229,7 @@ async function run() {
       */
 
       // Update the availability of sizes for new products before sending notifications
-      await updateProductSizesAvailability(fetchedProducts);
+      await updateProductSizesAvailability(newProducts);
 
       // send notification
       logger.info(

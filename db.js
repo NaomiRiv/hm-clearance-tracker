@@ -21,7 +21,7 @@ const db = new Database(DATABASE_PATH);
             lastSeen INT
         );
     `);
-
+  /*
   db.exec(`
         CREATE TABLE IF NOT EXISTS sizes (
             sizeCode TEXT PRIMARY KEY,
@@ -31,7 +31,7 @@ const db = new Database(DATABASE_PATH);
             FOREIGN KEY (articleCode) REFERENCES products(articleCode)
         );
     `);
-
+    */
   logger.info("DB initialized.");
 })();
 
@@ -54,13 +54,13 @@ const insertProduct = db.prepare(`
     regularPrice, discountPrice, discountPercentage, lastSeen
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
-
+/*
 const insertSize = db.prepare(`
   INSERT OR REPLACE INTO sizes (
     sizeCode, articleCode, name, availability
   ) VALUES (?, ?, ?, ?)
 `);
-
+*/
 // Insert full product + sizes
 function insertFullProduct(product, date) {
   insertProduct.run(
@@ -74,7 +74,7 @@ function insertFullProduct(product, date) {
     product.discountPercentage,
     date
   );
-
+  /*
   for (const size of product.sizes) {
     insertSize.run(
       size.sizeCode,
@@ -83,6 +83,7 @@ function insertFullProduct(product, date) {
       size.availability
     );
   }
+    */
 }
 
 function getNewAddedProducts(fetchedProducts) {
@@ -123,9 +124,11 @@ function cleanDB(items_TTL) {
   if (oldProducts.length > 0) {
     const articleCodes = oldProducts.map((p) => p.articleCode);
     const placeholders = articleCodes.map(() => "?").join(",");
+    /*
     db.prepare(`DELETE FROM sizes WHERE articleCode IN (${placeholders})`).run(
       ...articleCodes
     );
+    */
     db.prepare(
       `DELETE FROM products WHERE articleCode IN (${placeholders})`
     ).run(...articleCodes);
